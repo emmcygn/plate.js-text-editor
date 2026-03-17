@@ -10,7 +10,11 @@ import { triggerReview } from '@/lib/mock-review/inject-review';
  * Loading state: spinner replaces icon, button disabled.
  * After review: button stays disabled (single-use per session).
  */
-export function ReviewButton() {
+interface ReviewButtonProps {
+  isSampleDocument?: boolean;
+}
+
+export function ReviewButton({ isSampleDocument = true }: ReviewButtonProps) {
   const editor = useEditorRef();
   const isLoading = useAnnotationStore((s) => s.isReviewLoading);
   const hasItems = useAnnotationStore(
@@ -32,7 +36,7 @@ export function ReviewButton() {
       });
   }, [editor]);
 
-  const isDisabled = isLoading || hasItems;
+  const isDisabled = isLoading || hasItems || !isSampleDocument;
 
   return (
     <button
@@ -87,7 +91,11 @@ export function ReviewButton() {
           />
         </svg>
       )}
-      {isLoading ? 'Reviewing...' : "Get Perry's Review"}
+      {isLoading
+        ? 'Reviewing...'
+        : isSampleDocument
+          ? "Get Perry's Review"
+          : 'AI review (sample doc only)'}
     </button>
   );
 }

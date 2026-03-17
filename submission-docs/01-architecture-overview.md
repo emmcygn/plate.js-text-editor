@@ -122,7 +122,8 @@ sequenceDiagram
 ```mermaid
 graph TD
     subgraph App ["App.tsx"]
-        FETCH["Fetch DOCX<br/>→ convertDocxToHtml"]
+        UPLOAD["Upload Zone<br/><i>drag-drop / file picker<br/>or Load Sample</i>"]
+        FETCH["loadFromArrayBuffer<br/>→ convertDocxToHtml<br/>→ resetStore"]
     end
 
     subgraph Layout ["AppShell (2:1 layout)"]
@@ -145,7 +146,7 @@ graph TD
     end
 
     App --> Layout
-    FETCH --> PE
+    UPLOAD --> FETCH --> PE
     PE --> PEC
     PE --> AN
     SP --> SC
@@ -270,7 +271,7 @@ graph TD
 
 ```
 src/
-├── App.tsx                              # Entry: fetch DOCX → render
+├── App.tsx                              # Entry: upload UI → load DOCX → render
 ├── editor/
 │   ├── plate-editor.tsx                 # Editor setup + reactive decorations
 │   ├── editor-kit.ts                    # Plugin assembly (10 plugins)

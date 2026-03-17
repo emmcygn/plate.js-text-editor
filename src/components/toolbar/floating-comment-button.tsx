@@ -34,13 +34,12 @@ export function FloatingCommentButton() {
       const domRange = domSelection.getRangeAt(0);
       const rect = domRange.getBoundingClientRect();
 
-      const editorEl = document.querySelector('[data-slate-editor]');
-      if (!editorEl) return;
-      const editorRect = editorEl.getBoundingClientRect();
+      // Guard against collapsed/zero-size rects (e.g. when focus moves to textarea)
+      if (rect.width === 0 && rect.height === 0) return;
 
       setPosition({
-        top: rect.top - editorRect.top - 40,
-        left: rect.left - editorRect.left + rect.width / 2,
+        top: rect.top - 40,
+        left: rect.left + rect.width / 2,
       });
     } catch {
       // DOM range may be invalid during editor operations
@@ -60,9 +59,9 @@ export function FloatingCommentButton() {
     updatePosition();
   }, [hasSelection, selection, showForm, updatePosition]);
 
-  // Recalculate position on scroll
+  // Recalculate position on scroll (only when DOM selection is live, not when form is open)
   useEffect(() => {
-    if (!hasSelection && !showForm) return;
+    if (!hasSelection || showForm) return;
 
     const scrollContainer = document.querySelector('main.overflow-y-auto') ??
       document.querySelector('main');
@@ -123,7 +122,7 @@ export function FloatingCommentButton() {
   return (
     <div
       ref={formRef}
-      className="absolute z-50"
+      className="fixed z-50"
       style={{ top: position.top, left: position.left, transform: 'translateX(-50%)' }}
     >
       {showForm ? (

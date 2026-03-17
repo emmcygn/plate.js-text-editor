@@ -24,6 +24,7 @@ export function PlateEditor({ initialHtml, initialValue, children }: PlateEditor
     // Create a temporary headless editor for deserialization
     const tempEditor = createSlateEditor({ plugins: editorPlugins });
     const fragment = deserializeHtml(tempEditor, { element: initialHtml });
+
     return assignNodeIds(fragment) as Value;
   }, [initialHtml, initialValue]);
 

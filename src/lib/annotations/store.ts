@@ -32,6 +32,7 @@ interface AnnotationActions {
   setHighlightRange: (range: TRange | null) => void;
   setHighlightPhase: (phase: 'active' | null) => void;
   getAnnotationsByPosition: () => Annotation[];
+  resetStore: () => void;
 }
 
 export type AnnotationStore = AnnotationState & AnnotationActions;
@@ -119,6 +120,17 @@ export const useAnnotationStore = create<AnnotationStore>((set, get) => ({
   setHighlightRange: (range) => set({ highlightRange: range }),
 
   setHighlightPhase: (phase) => set({ highlightPhase: phase }),
+
+  resetStore: () =>
+    set({
+      discussions: [],
+      reviewItems: [],
+      selectedCardId: null,
+      highlightRange: null,
+      highlightPhase: null,
+      filterType: 'all',
+      isReviewLoading: false,
+    }),
 
   getAnnotationsByPosition: () => {
     const { discussions, reviewItems, filterType } = get();

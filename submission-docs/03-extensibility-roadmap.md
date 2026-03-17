@@ -9,9 +9,9 @@ graph LR
     subgraph Current ["Current (Take-Home)"]
         direction TB
         C1["Single user"]
-        C2["Mock AI (10 items)"]
+        C2["Mock AI (10 items,<br/>sample doc only)"]
         C3["In-memory state"]
-        C4["Single DOCX"]
+        C4["Multi-document upload<br/><i>drag-drop + sample fallback</i>"]
         C5["No auth"]
     end
 
@@ -27,7 +27,7 @@ graph LR
     C1 -->|"Add Yjs + WebSocket"| P1
     C2 -->|"Swap data source"| P2
     C3 -->|"Add API layer"| P3
-    C4 -->|"Add upload + routing"| P4
+    C4 -->|"Add persistence + routing"| P4
     C5 -->|"Add auth provider"| P5
 
     style Current fill:#fff9c4,stroke:#F9A825
@@ -44,11 +44,11 @@ graph TB
             ANCHOR["Anchoring Engine<br/><i>3-tier resolution,<br/>context scoring</i>"]
             SIDEBAR["Sidebar Panel<br/><i>cards, filters,<br/>accept/reject</i>"]
             INJECT["Injection Pipeline<br/><i>anchor → marks → store</i>"]
+            UPLOAD["Document Upload<br/><i>drag-drop, file picker,<br/>sample fallback</i>"]
         end
 
         subgraph NewClient ["New Client Code"]
             AUTH_UI["Auth UI<br/><i>login, user context</i>"]
-            UPLOAD["Document Upload<br/><i>drag-drop, file picker</i>"]
             YJS_CLIENT["Yjs Provider<br/><i>CRDT sync</i>"]
             NOTIF["Notifications<br/><i>review complete,<br/>new comments</i>"]
         end
@@ -71,7 +71,6 @@ graph TB
     end
 
     AUTH_UI --> AUTH
-    UPLOAD --> API --> STORE
     EDITOR <--> YJS_CLIENT <--> YJS_SERVER
     SIDEBAR --> API --> DB
     INJECT <-.->|"same interface"| AI
@@ -96,7 +95,7 @@ graph TB
 | **Anchoring Engine** | 3-tier resolution handles repeated text, deleted paragraphs, edited text. 282 adversarial tests. | Anchors are serializable JSON — store in any database. `resolveAnchor()` takes an editor instance and returns a range. |
 | **Injection Pipeline** | `injectReviewItems()` accepts any array of `ReviewItem` / `Discussion` objects. Per-item error handling. | Replace mock `setTimeout` with `fetch('/api/review')`. The injection function doesn't care where data comes from. |
 | **Suggestion Actions** | `applySuggestionAccept/Reject/Resolve` are pure functions that take editor + ID. | Add API call after local state update: `await api.updateAnnotation(id, status)`. |
-| **DOCX Import** | Mammoth.js style map handles V14 legal templates. `assignNodeIds` produces stable, sortable IDs. | Swap hardcoded fetch with upload endpoint. Same pipeline. |
+| **DOCX Import** | Mammoth.js style map handles V14 legal templates + standard Word headings. Drag-drop upload already implemented. `assignNodeIds` produces stable, sortable IDs. | Upload UI is ready. For production: add server-side storage after upload. Same pipeline. |
 | **Sidebar Components** | Cards, filters, counts are data-driven. Subscribe to Zustand. | Zustand store can hydrate from API response. Components don't know or care about data source. |
 | **Type System** | `Anchor`, `Discussion`, `ReviewItem` types are well-defined. Discriminated unions. | Types become your API contract. Generate OpenAPI schema from TypeScript types. |
 
@@ -106,7 +105,7 @@ graph TB
 |-----------|-------------|--------|-----|
 | **State persistence** | Zustand is in-memory → need API sync | Medium | Add middleware: `zustand/middleware` with `persist` for optimistic local cache + API sync on mutation |
 | **User identity** | Hardcoded `'user-1'` → real auth | Low | Replace `currentUserId: 'user-1'` in `editor-kit.ts` with user from auth context. ~5 lines. |
-| **Document routing** | Single hardcoded DOCX → multi-document | Medium | Add React Router + document list page. `App.tsx` fetch changes from `/document.docx` to `/api/documents/:id/content`. |
+| **Document routing** | Upload UI exists → add persistence + document list | Low-Medium | Upload + drag-drop is implemented. Add React Router for document list page, backend storage for persistence across sessions. |
 | **Review trigger** | Mock `setTimeout` → real API call | Low | Replace `triggerReview()` body with `const items = await api.requestReview(documentId)`. Injection pipeline is unchanged. |
 | **Collaborative editing** | Single-user → multi-user real-time | High | Add `@platejs/yjs` plugin + WebSocket provider. Anchoring switches from absolute paragraph IDs to Yjs relative positions. |
 
@@ -117,7 +116,7 @@ graph TB
 | **Auth + RBAC** | No auth in take-home | Medium | Standard JWT + role-based access. Roles: reviewer, editor, admin. Plate's `currentUserId` already supports per-user attribution. |
 | **Backend API** | No backend in take-home | Medium | REST or GraphQL. Core entities: Document, Annotation (polymorphic: Discussion \| ReviewItem), User, Review (job). |
 | **AI Review Service** | Mock data → LLM integration | High | Prompt engineering for legal review. Need: clause extraction, risk assessment, suggestion generation. Output format already defined by `ReviewItem` type. |
-| **Document management** | Single file → library | Medium | Upload, list, search, version history. S3 for storage, PostgreSQL for metadata. |
+| **Document management** | Upload exists → add library + persistence | Low-Medium | Upload/drag-drop UI is built. Remaining: document list, search, version history. S3 for storage, PostgreSQL for metadata. |
 | **Notification system** | None | Low | WebSocket or SSE for real-time updates. "Review complete", "New comment on your suggestion". |
 
 ## AI Integration: Swap Path

@@ -1,4 +1,5 @@
-import { ParagraphPlugin } from 'platejs/react';
+import React from 'react';
+import { ParagraphPlugin, type PlateElementProps } from 'platejs/react';
 import {
   HeadingPlugin,
   BoldPlugin,
@@ -18,6 +19,31 @@ import { HighlightPlugin } from '@/editor/plugins/highlight-plugin';
 import { CommentHighlightPlugin } from '@/editor/plugins/comment-leaf';
 import { SuggestionLeaf } from '@/editor/plugins/suggestion-leaf';
 
+function TableElement({ attributes, children }: PlateElementProps) {
+  return React.createElement('table', attributes, React.createElement('tbody', null, children));
+}
+
+function TableRowElement({ attributes, children }: PlateElementProps) {
+  return React.createElement('tr', attributes, children);
+}
+
+function TableCellElement({ attributes, children, element }: PlateElementProps) {
+  const col = (element.colSpan ?? element.colspan) as number | undefined;
+  const row = (element.rowSpan ?? element.rowspan) as number | undefined;
+  // Destructure to remove lowercase variants that React doesn't accept
+  const { colspan: _c, rowspan: _r, ...cleanAttrs } = attributes as Record<string, unknown>;
+  const props = { ...cleanAttrs, ...(col ? { colSpan: col } : {}), ...(row ? { rowSpan: row } : {}) };
+  return React.createElement('td', props, children);
+}
+
+function TableHeaderCellElement({ attributes, children, element }: PlateElementProps) {
+  const col = (element.colSpan ?? element.colspan) as number | undefined;
+  const row = (element.rowSpan ?? element.rowspan) as number | undefined;
+  const { colspan: _c, rowspan: _r, ...cleanAttrs } = attributes as Record<string, unknown>;
+  const props = { ...cleanAttrs, ...(col ? { colSpan: col } : {}), ...(row ? { rowSpan: row } : {}) };
+  return React.createElement('th', props, children);
+}
+
 export const editorPlugins = [
   HeadingPlugin,
   ParagraphPlugin,
@@ -25,10 +51,10 @@ export const editorPlugins = [
   ItalicPlugin,
   UnderlinePlugin,
   ListPlugin,
-  TablePlugin,
-  TableRowPlugin,
-  TableCellPlugin,
-  TableCellHeaderPlugin,
+  TablePlugin.extend({ render: { node: TableElement } }),
+  TableRowPlugin.extend({ render: { node: TableRowElement } }),
+  TableCellPlugin.extend({ render: { node: TableCellElement } }),
+  TableCellHeaderPlugin.extend({ render: { node: TableHeaderCellElement } }),
   CommentPlugin,
   // TODO: Add multi-user support — currentUserId should come from auth context, not hardcoded.
   SuggestionPlugin.configure({
