@@ -16,9 +16,12 @@ body {
   color: #1a1a1a;
 }
 
-/* Headings */
+/* Headings — h1/h2 are true section headings (bold, larger).
+   h3–h5 are sub-clause nesting levels in V14 legal style — rendered
+   as normal-weight body text with progressive indentation to show
+   hierarchy without making the whole document look bold. */
 [data-slate-editor] h1 {
-  font-size: 1.5em;
+  font-size: 1.4em;
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.02em;
@@ -29,7 +32,7 @@ body {
 }
 
 [data-slate-editor] h2 {
-  font-size: 1.3em;
+  font-size: 1.15em;
   font-weight: 700;
   margin-top: 1.5em;
   margin-bottom: 0.5em;
@@ -38,33 +41,33 @@ body {
 }
 
 [data-slate-editor] h3 {
-  font-size: 1.15em;
-  font-weight: 600;
-  margin-top: 1.25em;
+  font-size: 1em;
+  font-weight: 400;
+  margin-top: 0.75em;
   margin-bottom: 0.4em;
-  padding-left: 0.5em;
-  line-height: 1.4;
-  color: #222;
+  padding-left: 2em;
+  line-height: 1.6;
+  color: #1a1a1a;
 }
 
 [data-slate-editor] h4 {
-  font-size: 1.05em;
-  font-weight: 600;
-  margin-top: 1em;
+  font-size: 1em;
+  font-weight: 400;
+  margin-top: 0.5em;
   margin-bottom: 0.35em;
-  padding-left: 1em;
-  line-height: 1.4;
-  color: #333;
+  padding-left: 3.5em;
+  line-height: 1.6;
+  color: #1a1a1a;
 }
 
 [data-slate-editor] h5 {
   font-size: 1em;
-  font-weight: 600;
-  margin-top: 0.75em;
+  font-weight: 400;
+  margin-top: 0.5em;
   margin-bottom: 0.3em;
-  padding-left: 1.5em;
-  line-height: 1.4;
-  color: #444;
+  padding-left: 5em;
+  line-height: 1.6;
+  color: #1a1a1a;
 }
 
 /* Paragraphs */
@@ -130,6 +133,40 @@ body {
 
 [data-slate-editor] em {
   font-style: italic;
+}
+
+/* Index entries — two-column layout matching Word's "INDEX OF DEFINED TERMS".
+   Strategy: set column-count: 2 on the editor, but have ALL non-index elements
+   span both columns via column-span: all. Only index entries flow within the
+   two-column layout, creating a top-to-bottom column fill like Word. */
+[data-slate-editor] {
+  column-count: 2;
+  column-gap: 2em;
+}
+
+/* All elements span both columns by default (full-width, normal layout) */
+[data-slate-editor] > * {
+  column-span: all;
+}
+
+/* Index entries DON'T span — they flow within the two-column layout */
+[data-slate-editor] > .index-entry {
+  column-span: none;
+  margin-bottom: 0.15em;
+  font-size: 0.93em;
+  line-height: 1.4;
+  break-inside: avoid;
+}
+
+/* Accept/reject flash — fades out over the 3-second display window */
+.suggestion-flash {
+  animation: flash-fade 3s ease-in forwards;
+}
+
+@keyframes flash-fade {
+  0%   { opacity: 1; }
+  60%  { opacity: 1; }
+  100% { opacity: 0; }
 }
 
 /* First heading — no top margin (the document starts right away) */

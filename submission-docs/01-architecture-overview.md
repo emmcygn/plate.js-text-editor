@@ -8,8 +8,9 @@
 graph LR
     subgraph Import ["1. Document Import"]
         DOCX["DOCX File<br/><i>17,464 words</i>"]
-        MAM["Mammoth.js<br/><i>V14 style map</i>"]
+        MAM["Mammoth.js<br/><i>V14 style map +<br/>TOC/index cleanup</i>"]
         DES["deserializeHtml<br/><i>Plate.js</i>"]
+        IDX["markIndexEntries<br/><i>two-column detection</i>"]
         IDS["assignNodeIds<br/><i>p{n}_{nanoid}</i>"]
     end
 
@@ -36,7 +37,7 @@ graph LR
         FLOAT["Floating Comment<br/><i>Selection → Comment</i>"]
     end
 
-    DOCX --> MAM --> DES --> IDS --> PLATE
+    DOCX --> MAM --> DES --> IDX --> IDS --> PLATE
     PLATE --- PLUGINS
     PLATE --- DECORATE
     TOOLBAR --> PLATE
@@ -274,7 +275,7 @@ src/
 ├── App.tsx                              # Entry: upload UI → load DOCX → render
 ├── editor/
 │   ├── plate-editor.tsx                 # Editor setup + reactive decorations
-│   ├── editor-kit.ts                    # Plugin assembly (10 plugins)
+│   ├── editor-kit.ts                    # Plugin assembly + custom element renderers (Table, Paragraph)
 │   ├── anchor-navigator.tsx             # Card click → resolve → scroll
 │   └── plugins/                         # Custom leaf renderers
 ├── components/
@@ -298,7 +299,7 @@ src/
 │   │   ├── review-items.ts              # 10 verified mock items
 │   │   └── inject-review.ts             # Injection pipeline
 │   └── docx-import/
-│       ├── import-pipeline.ts           # Mammoth.js conversion
-│       └── deserialize.ts               # ID assignment
+│       ├── import-pipeline.ts           # Mammoth.js conversion + TOC/index cleanup
+│       └── deserialize.ts               # htmlToPlateNodes: deserialize → markIndexEntries → assignNodeIds
 └── types/annotations.ts                 # Anchor, Discussion, ReviewItem
 ```

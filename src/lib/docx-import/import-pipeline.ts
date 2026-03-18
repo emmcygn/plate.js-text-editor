@@ -6,14 +6,15 @@ const STYLE_MAP = [
   "p[style-name='V14 Level 2 EN'] => h3:fresh",
   "p[style-name='V14 Level 3 EN'] => h4:fresh",
   "p[style-name='V14 Level 4 EN'] => h5:fresh",
-  // V14 Introduction EN and V14 Parties EN are intentionally unmapped —
-  // letting Mammoth's default list detection handle their Word numbering
-  // (e.g., (1), (2), (3) and (A), (B) clause markers).
+  "p[style-name='V14 Introduction EN'] => p:fresh",
+  "p[style-name='V14 Parties EN'] => p:fresh",
   "p[style-name='V14 TOC 1 EN'] => p.toc-1:fresh",
   "p[style-name='V14 TOC 2 EN'] => p.toc-2:fresh",
   "p[style-name='V14 TOC 3 EN'] => p.toc-3:fresh",
-  "p[style-name='V14 TOC Heading EN'] => h2:fresh",
-  "p[style-name='TOC Heading'] => h2:fresh",
+  "p[style-name='V14 TOC Heading EN'] => h1:fresh",
+  "p[style-name='TOC Heading'] => h1:fresh",
+  // Index entries — mapped with class for page number stripping
+  "p[style-name='index 1'] => p.index-entry:fresh",
   // Standard Word heading styles — ensures any DOCX renders with heading hierarchy
   "p[style-name='Heading 1'] => h1:fresh",
   "p[style-name='Heading 2'] => h2:fresh",
@@ -27,65 +28,43 @@ const STYLE_MAP = [
 ];
 
 /**
- * Strip trailing page numbers and TOC anchor links from TOC entries.
+ * Strip trailing page numbers from TOC and index entries.
  * Page numbers reference Word's paginated layout and are meaningless
  * in a web editor — displaying them would be misleading.
  *
- * Mammoth outputs TOC entries as:
- *   <p class="toc-1"><a href="#_Toc...">PARTIES\t5</a></p>
- *   <p class="toc-2"><a href="#_Toc...">1\tEmployee Incentive Scheme\t10</a></p>
+ * Handles two patterns:
+ * - TOC: <p class="toc-1"><a href="#_Toc...">PARTIES\t5</a></p>
+ * - Index: <p class="index-entry">20VC 6</p>
  */
-function stripTocPageNumbers(html: string): string {
-  return html.replace(
+function stripPageReferences(html: string): string {
+  // TOC entries — strip anchor links and trailing tab + page number
+  let result = html.replace(
     /<p class="toc-\d+">([\s\S]*?)<\/p>/g,
     (_match, inner: string) => {
-      // Strip anchor tags, keep inner text
       let text = inner.replace(/<a[^>]*>/g, '').replace(/<\/a>/g, '');
-      // Strip trailing tab + page number
       text = text.replace(/\t\d+\s*$/, '');
-      // Strip trailing dots + page number (some Word versions)
       text = text.replace(/[\s.]+\d+\s*$/, '');
-      // Clean up remaining tabs (used as separators in numbered TOC entries like "1\tTitle")
       text = text.replace(/\t/g, '\u2003');
       text = text.trim();
       if (!text) return '';
       return `<p>${text}</p>`;
     },
   );
-}
 
-/**
- * Annotate list items with data attributes that Plate's ListPlugin needs.
- * Mammoth outputs clean `<ol><li>` / `<ul><li>` but Plate's indent-based
- * list model requires `data-list-style-type` and `data-indent` on `<li>`.
- */
-function annotateListItems(html: string): string {
-  // Use DOMParser to traverse and annotate
-  const parser = new DOMParser();
-  const doc = parser.parseFromString(`<body>${html}</body>`, 'text/html');
+  // Index entries — strip trailing page number, wrap in container for 2-column CSS
+  // Insert opening marker before first index entry, closing marker after last
+  result = result.replace(
+    /<p class="index-entry">([\s\S]*?)<\/p>/g,
+    (_match, inner: string) => {
+      let text = inner.replace(/<a[^>]*>/g, '').replace(/<\/a>/g, '');
+      text = text.replace(/\s+\d+\s*$/, '');
+      text = text.trim();
+      if (!text) return '';
+      return `<p>${text}</p>`;
+    },
+  );
 
-  doc.querySelectorAll('li').forEach((li) => {
-    const parent = li.parentElement;
-    if (!parent) return;
-
-    // Determine list style type from parent
-    if (parent.tagName === 'OL') {
-      li.dataset.listStyleType = parent.style.listStyleType || 'decimal';
-    } else if (parent.tagName === 'UL') {
-      li.dataset.listStyleType = parent.style.listStyleType || 'disc';
-    }
-
-    // Calculate nesting depth
-    let depth = 0;
-    let el: Element | null = parent;
-    while (el) {
-      if (el.tagName === 'OL' || el.tagName === 'UL') depth++;
-      el = el.parentElement;
-    }
-    li.dataset.indent = String(depth);
-  });
-
-  return doc.body.innerHTML;
+  return result;
 }
 
 export interface ImportResult {
@@ -102,7 +81,7 @@ export async function convertDocxToHtml(
   );
 
   return {
-    html: annotateListItems(stripTocPageNumbers(result.value)),
+    html: stripPageReferences(result.value),
     warnings: result.messages.map((m) => m.message),
   };
 }

@@ -1,8 +1,8 @@
 import { type ReactNode, useMemo, useCallback } from 'react';
 import { Plate, PlateContent, usePlateEditor } from 'platejs/react';
-import { type Value, type TRange, createSlateEditor, deserializeHtml } from 'platejs';
-import { editorPlugins } from '@/editor/editor-kit';
-import { assignNodeIds } from '@/lib/docx-import';
+import { type Value, type TRange, createSlateEditor } from 'platejs';
+import { editorPlugins, ParagraphElement } from '@/editor/editor-kit';
+import { htmlToPlateNodes } from '@/lib/docx-import';
 import { AnchorNavigator } from '@/editor/anchor-navigator';
 import { useAnnotationStore } from '@/lib/annotations/store';
 import { rangeIntersection } from '@/editor/plugins/highlight-plugin';
@@ -23,15 +23,19 @@ export function PlateEditor({ initialHtml, initialValue, children }: PlateEditor
 
     // Create a temporary headless editor for deserialization
     const tempEditor = createSlateEditor({ plugins: editorPlugins });
-    const fragment = deserializeHtml(tempEditor, { element: initialHtml });
 
-    return assignNodeIds(fragment) as Value;
+    return htmlToPlateNodes(tempEditor, initialHtml) as Value;
   }, [initialHtml, initialValue]);
 
   const editor = usePlateEditor(
     {
       plugins: editorPlugins,
       value: value,
+      override: {
+        components: {
+          p: ParagraphElement,
+        },
+      },
     },
     [],
   );
@@ -57,6 +61,8 @@ export function PlateEditorContent() {
   // triggering re-decoration of all nodes.
   const highlightRange = useAnnotationStore((s) => s.highlightRange);
   const highlightPhase = useAnnotationStore((s) => s.highlightPhase);
+  const flashRange = useAnnotationStore((s) => s.flashRange);
+  const flashType = useAnnotationStore((s) => s.flashType);
 
   const decorate = useCallback(
     ({ entry }: { entry: [node: Record<string, unknown>, path: number[]] }) => {
@@ -80,6 +86,23 @@ export function PlateEditorContent() {
         }
       }
 
+      // --- Accept/reject flash highlight ---
+      if (flashRange && flashType) {
+        const nodeRange: TRange = {
+          anchor: { path, offset: 0 },
+          focus: { path, offset: node.text.length },
+        };
+        const flashIntersection = rangeIntersection(flashRange, nodeRange);
+        if (flashIntersection) {
+          results.push({
+            ...flashIntersection,
+            highlight: true,
+            flash: true,
+            flashType,
+          } as DecoratedRange);
+        }
+      }
+
       // --- Comment highlight (comment_* keys) ---
       const hasComment = Object.keys(node).some((key) => key.startsWith('comment_'));
       if (hasComment) {
@@ -92,7 +115,7 @@ export function PlateEditorContent() {
 
       return results;
     },
-    [highlightRange, highlightPhase],
+    [highlightRange, highlightPhase, flashRange, flashType],
   );
 
   return (

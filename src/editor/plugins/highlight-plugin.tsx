@@ -35,9 +35,29 @@ export function rangeIntersection(a: TRange, b: TRange): TRange | null {
 
 /**
  * Persistent highlight leaf — stays visible while a sidebar card is selected.
+ * Also renders accept/reject flash highlights that fade out over 3 seconds.
  */
 function HighlightLeaf({ children, leaf }: PlateLeafProps) {
-  const typedLeaf = leaf as { highlight?: boolean };
+  const typedLeaf = leaf as {
+    highlight?: boolean;
+    flash?: boolean;
+    flashType?: 'accepted' | 'rejected';
+  };
+
+  if (typedLeaf.flash && typedLeaf.flashType) {
+    const bg = typedLeaf.flashType === 'accepted'
+      ? 'rgba(34, 197, 94, 0.35)'   // green
+      : 'rgba(239, 68, 68, 0.25)';  // red
+    return (
+      <span
+        className="suggestion-flash"
+        style={{ backgroundColor: bg, borderRadius: '2px' }}
+      >
+        {children}
+      </span>
+    );
+  }
+
   if (typedLeaf.highlight) {
     return (
       <span

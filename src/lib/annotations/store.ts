@@ -17,6 +17,9 @@ interface AnnotationState {
   isReviewLoading: boolean;
   highlightRange: TRange | null;
   highlightPhase: 'active' | null;
+  /** Temporary flash after accept/reject — shows where the change landed. */
+  flashRange: TRange | null;
+  flashType: 'accepted' | 'rejected' | null;
 }
 
 interface AnnotationActions {
@@ -31,6 +34,9 @@ interface AnnotationActions {
   setReviewLoading: (loading: boolean) => void;
   setHighlightRange: (range: TRange | null) => void;
   setHighlightPhase: (phase: 'active' | null) => void;
+  /** Show a temporary flash highlight that auto-clears after 3 seconds. */
+  setFlash: (range: TRange, type: 'accepted' | 'rejected') => void;
+  clearFlash: () => void;
   getAnnotationsByPosition: () => Annotation[];
   resetStore: () => void;
 }
@@ -71,6 +77,8 @@ export const useAnnotationStore = create<AnnotationStore>((set, get) => ({
   isReviewLoading: false,
   highlightRange: null,
   highlightPhase: null,
+  flashRange: null,
+  flashType: null,
 
   // Actions
   addDiscussion: (discussion) =>
@@ -121,6 +129,19 @@ export const useAnnotationStore = create<AnnotationStore>((set, get) => ({
 
   setHighlightPhase: (phase) => set({ highlightPhase: phase }),
 
+  setFlash: (range, type) => {
+    set({ flashRange: range, flashType: type });
+    setTimeout(() => {
+      // Only clear if the flash hasn't been replaced by a newer one
+      const current = get();
+      if (current.flashRange === range) {
+        set({ flashRange: null, flashType: null });
+      }
+    }, 3000);
+  },
+
+  clearFlash: () => set({ flashRange: null, flashType: null }),
+
   resetStore: () =>
     set({
       discussions: [],
@@ -128,6 +149,8 @@ export const useAnnotationStore = create<AnnotationStore>((set, get) => ({
       selectedCardId: null,
       highlightRange: null,
       highlightPhase: null,
+      flashRange: null,
+      flashType: null,
       filterType: 'all',
       isReviewLoading: false,
     }),

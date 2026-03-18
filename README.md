@@ -162,13 +162,20 @@ Solution: manually inject suggestion marks using `editor.tf.insertNodes` and `se
 
 Mammoth.js converts DOCX → HTML with a custom style mapping for V14 styles (the law firm's template). Plate's `deserializeHtml` converts HTML → Slate AST. A post-processing step assigns sequential IDs (`p{n}_{nanoid}`) to every block-level element — the numeric prefix preserves document order for sidebar sorting, and the nanoid suffix ensures uniqueness.
 
-The pipeline includes three post-processing stages between Mammoth output and Plate deserialization:
+The pipeline includes four post-processing stages between Mammoth output and Plate deserialization:
 
-1. **TOC cleanup** — strips page numbers and internal anchor links from table-of-contents entries. Page numbers reference Word's paginated layout and are meaningless in a web editor.
-2. **List annotation** — adds `data-list-style-type` and `data-indent` attributes to `<li>` elements, bridging Mammoth's standard HTML list output to Plate's indent-based list model.
-3. **Table rendering** — custom Plate element components render table nodes as actual `<table>/<tr>/<td>` HTML instead of Plate's default `<div>` wrappers.
+1. **TOC + index cleanup** — strips page numbers and internal anchor links from table-of-contents entries and index entries. Page numbers reference Word's paginated layout and are meaningless in a web editor.
+2. **Index entry detection** — a Slate-level post-processor scans for paragraphs between the "INDEX OF DEFINED TERMS" heading and the next heading, marking them with `indexEntry: true` for two-column rendering.
+3. **Table rendering** — custom Plate element components (via `withComponent` API) render table nodes as actual `<table>/<tr>/<td>` HTML instead of Plate's default `<div>` wrappers. The `extend({ render })` pattern doesn't work for core plugins; `withComponent` is the correct v52 API.
+4. **Paragraph rendering** — a custom `ParagraphElement` component (injected via `override.components` in `usePlateEditor`, since `ParagraphPlugin.withComponent()` is silently ignored) adds `index-entry` CSS class to marked paragraphs and renders as `<div>` to avoid invalid `<p>`-inside-`<p>` DOM nesting.
 
-The style mapping handles V14 heading variants (Level 1-4 EN, Level 1 EN CAPS), TOC styles, and standard Word `Heading 1`–`Heading 6`. Body-text styles like V14 Introduction EN and V14 Parties EN are intentionally unmapped so Mammoth's default list detection can handle their Word numbering.
+The style mapping handles V14 heading variants (Level 1-4 EN, Level 1 EN CAPS), TOC styles, index entries, and standard Word `Heading 1`–`Heading 6`.
+
+#### Rendering Fidelity
+
+The editor renders sub-clause headings (h3–h5) as normal-weight body text with progressive indentation rather than bold headings. This matches the Word document's visual appearance where most clause text is normal weight with only specific inline phrases bolded. The heading hierarchy (h1 = section dividers, h2 = clause titles, h3–h5 = nested sub-clauses) is conveyed through indentation levels (2em, 3.5em, 5em) rather than font weight.
+
+The Index of Defined Terms renders in a two-column layout using a CSS `column-count: 2` trick: the editor element has `column-count: 2`, all children have `column-span: all` (full-width), and only `.index-entry` elements have `column-span: none` — causing them to flow top-to-bottom in two columns like Word's column layout.
 
 #### Known Limitation: Word Auto-Numbering
 

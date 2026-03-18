@@ -19,6 +19,23 @@ import { HighlightPlugin } from '@/editor/plugins/highlight-plugin';
 import { CommentHighlightPlugin } from '@/editor/plugins/comment-leaf';
 import { SuggestionLeaf } from '@/editor/plugins/suggestion-leaf';
 
+/**
+ * Custom paragraph renderer — adds `index-entry` class for paragraphs
+ * marked during DOCX import so CSS can render them in a two-column layout.
+ */
+export function ParagraphElement({ attributes, children, element }: PlateElementProps) {
+  const el = element as Record<string, unknown>;
+  const isIndex = el.indexEntry === true;
+  const baseClass = ((attributes as Record<string, unknown>).className as string) || '';
+  // Use <div> (not <p>) to avoid invalid DOM nesting — Plate sometimes
+  // nests paragraph-type elements, and <p> inside <p> is invalid HTML.
+  if (isIndex) {
+    const props = { ...attributes, className: `${baseClass} index-entry`.trim() };
+    return React.createElement('div', props, children);
+  }
+  return React.createElement('div', attributes, children);
+}
+
 function TableElement({ attributes, children }: PlateElementProps) {
   return React.createElement('table', attributes, React.createElement('tbody', null, children));
 }
@@ -30,7 +47,6 @@ function TableRowElement({ attributes, children }: PlateElementProps) {
 function TableCellElement({ attributes, children, element }: PlateElementProps) {
   const col = (element.colSpan ?? element.colspan) as number | undefined;
   const row = (element.rowSpan ?? element.rowspan) as number | undefined;
-  // Destructure to remove lowercase variants that React doesn't accept
   const { colspan: _c, rowspan: _r, ...cleanAttrs } = attributes as Record<string, unknown>;
   const props = { ...cleanAttrs, ...(col ? { colSpan: col } : {}), ...(row ? { rowSpan: row } : {}) };
   return React.createElement('td', props, children);
@@ -51,10 +67,10 @@ export const editorPlugins = [
   ItalicPlugin,
   UnderlinePlugin,
   ListPlugin,
-  TablePlugin.extend({ render: { node: TableElement } }),
-  TableRowPlugin.extend({ render: { node: TableRowElement } }),
-  TableCellPlugin.extend({ render: { node: TableCellElement } }),
-  TableCellHeaderPlugin.extend({ render: { node: TableHeaderCellElement } }),
+  TablePlugin.withComponent(TableElement),
+  TableRowPlugin.withComponent(TableRowElement),
+  TableCellPlugin.withComponent(TableCellElement),
+  TableCellHeaderPlugin.withComponent(TableHeaderCellElement),
   CommentPlugin,
   // TODO: Add multi-user support — currentUserId should come from auth context, not hardcoded.
   SuggestionPlugin.configure({
@@ -62,9 +78,7 @@ export const editorPlugins = [
       currentUserId: 'user-1',
       isSuggesting: false,
     },
-  }).extend({
-    render: { node: SuggestionLeaf },
-  }),
+  }).withComponent(SuggestionLeaf),
   CommentHighlightPlugin,
   HighlightPlugin,
 ];

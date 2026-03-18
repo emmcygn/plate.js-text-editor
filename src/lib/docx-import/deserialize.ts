@@ -41,6 +41,46 @@ export function assignNodeIds(nodes: Descendant[]): Descendant[] {
 }
 
 /**
+ * Detect paragraphs between the "INDEX OF DEFINED TERMS" heading and
+ * the next heading, and mark them as index entries for two-column rendering.
+ */
+function markIndexEntries(nodes: Descendant[]): Descendant[] {
+  let inIndex = false;
+
+  return nodes.map((node) => {
+    const n = node as Record<string, unknown>;
+
+    // Check for heading-level elements
+    if (n.type === 'h1' || n.type === 'h2') {
+      const text = extractText(node);
+      inIndex = /INDEX OF DEFINED TERMS/i.test(text);
+      return node;
+    }
+
+    // Any heading ends the index section
+    if (typeof n.type === 'string' && /^h[1-6]$/.test(n.type)) {
+      inIndex = false;
+      return node;
+    }
+
+    if (inIndex && n.type === 'p') {
+      return { ...node, indexEntry: true };
+    }
+
+    return node;
+  });
+}
+
+/** Extract plain text from a Slate node tree. */
+function extractText(node: Descendant): string {
+  if ('text' in node) return (node as { text: string }).text;
+  if ('children' in node) {
+    return (node as { children: Descendant[] }).children.map(extractText).join('');
+  }
+  return '';
+}
+
+/**
  * Converts an HTML string into Plate-compatible Descendant nodes
  * with unique IDs on every block element.
  */
@@ -50,5 +90,5 @@ export function htmlToPlateNodes(
 ): Descendant[] {
   const fragment = deserializeHtml(editor, { element: html });
 
-  return assignNodeIds(fragment);
+  return assignNodeIds(markIndexEntries(fragment));
 }
