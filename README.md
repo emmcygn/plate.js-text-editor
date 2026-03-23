@@ -1,6 +1,6 @@
-# Perry Document Collaboration Tool
+# Legal Document Collaboration Tool
 
-A Google Docs-style document collaboration tool for AI-assisted legal document review. Built as a take-home assessment for [Perry](https://useperry.com).
+A Google Docs-style document collaboration tool for AI-assisted legal document review.
 
 The target document is a **Series A Shareholders' Agreement** (Peec AI GmbH) — 17,464 words, 447 paragraphs, 4 tables, with "the Company" appearing 174 times. This last detail is the spec's explicit disambiguation challenge.
 
